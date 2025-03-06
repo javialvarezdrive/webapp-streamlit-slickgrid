@@ -1,0 +1,152 @@
+import streamlit as st
+import pandas as pd
+from database import (
+    get_activities, get_activity, create_activity, update_activity, delete_activity,
+    get_monitors, get_schedules, create_booking, cancel_booking, get_user_bookings
+)
+from utils import days_map, format_time, get_user_id, check_monitor_access
+
+def show():
+    st.title("🏋️ Actividades")
+
+    # Obtener ID de usuario
+    user_id = get_user_id(st.session_state.username)
+
+    # Crear pestañas
+    tab1, tab2 = st.tabs(["Ver Actividades", "Mis Reservas"])
+
+    with tab1:
+        # Mostrar lista de actividades
+        activities = get_activities()
+
+        if st.session_state.is_monitor:
+            # Si es monitor, mostrar botón para añadir actividad
+            if st.button("➕ Añadir nueva actividad"):
+                st.session_state.edit_activity = True
+                st.session_state.activity_id = None
+                st.experimental_rerun()
+
+            if 'edit_activity' in st.session_state and st.session_state.edit_activity:
+                # Formulario para añadir/editar actividad
+                if st.session_state.activity_id:
+                    st.subheader("Editar Actividad")
+                    activity = get_activity(st.session_state.activity_id)
+                else:
+                    st.subheader("Añadir Nueva Actividad")
+                    activity = None
+
+                # Obtener monitores para asignar
+                monitors = get_monitors()
+
+                with st.form("activity_form"):
+                    name = st.text_input("Nombre", activity['name'] if activity else "")
+                    description = st.text_area("Descripción", activity['description'] if activity else "")
+                    max_capacity = st.number_input("Capacidad máxima", min_value=1, value=activity['max_capacity'] if activity else 10)
+                    duration = st.number_input("Duración (minutos)", min_value=15, step=15, value=activity['duration'] if activity else 60)
+                    monitor_options = {row['username']: row['id'] for _, row in monitors.iterrows()}
+                    selected_monitor = st.selectbox(
+                        "Monitor asignado",
+                        options=list(monitor_options.keys()),
+                        index=list(monitor_options.keys()).index(activity['monitor_name']) if activity else 0
+                    )
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        submitted = st.form_submit_button("Guardar")
+                    with col2:
+                        cancel = st.form_submit_button("Cancelar")
+
+                    if submitted:
+                        if not name or max_capacity <= 0 or duration <= 0:
+                            st.error("Por favor, completa todos los campos correctamente")
+                        else:
+                            monitor_id = monitor_options[selected_monitor]
+                            if activity:
+                                update_activity(activity['id'], name, description, max_capacity, duration, monitor_id)
+                                st.success("Actividad actualizada correctamente")
+                            else:
+                                create_activity(name, description, max_capacity, duration, monitor_id)
+                                st.success("Actividad creada correctamente")
+                            st.session_state.edit_activity = False
+                            st.experimental_rerun()
+                    if cancel:
+                        st.session_state.edit_activity = False
+                        st.experimental_rerun()
+
+        else:
+            # Mostrar actividades
+            if not activities.empty:
+                for _, activity in activities.iterrows():
+                    with st.expander(f"🔹 {activity['name']}"):
+                        col1, col2 = st.columns([3, 1])
+                        with col1:
+                            st.markdown(f"**Descripción:** {activity['description']}")
+                            st.markdown(f"**Capacidad máxima:** {activity['max_capacity']} personas")
+                            st.markdown(f"**Duración:** {activity['duration']} minutos")
+                            st.markdown(f"**Monitor:** {activity['monitor_name']}")
+
+                            # Mostrar horarios disponibles
+                            schedules = get_schedules()
+                            activity_schedules = schedules[schedules['activity_id'] == activity['id']]
+                            if not activity_schedules.empty:
+                                st.markdown("### Horarios disponibles")
+                                for _, schedule in activity_schedules.iterrows():
+                                    st.markdown(f"**{days_map[schedule['day_of_week']]}** a las **{format_time(schedule['start_time'])}**")
+
+                                    # Verificar disponibilidad
+                                    available_spots = schedule['max_capacity'] - schedule['current_bookings']
+                                    if available_spots > 0:
+                                        # Verificar si el usuario ya tiene esta reserva
+                                        user_bookings = get_user_bookings(user_id)
+                                        already_booked = False
+                                        if not user_bookings.empty:
+                                            already_booked = schedule['id'] in user_bookings['schedule_id'].values
+                                        if not already_booked:
+                                            if st.button(f"Reservar para {days_map[schedule['day_of_week']]} a las {format_time(schedule['start_time'])}", key=f"book_{schedule['id']}"):
+                                                success = create_booking(user_id, schedule['id'])
+                                                if success:
+                                                    st.success("Reserva creada correctamente")
+                                                    st.experimental_rerun()
+                                                else:
+                                                    st.error("Ya tienes una reserva para esta actividad")
+                                        else:
+                                            st.info("Ya tienes una reserva para este horario")
+                                    else:
+                                        st.warning("No hay plazas disponibles")
+                            else:
+                                st.info("No hay horarios programados para esta actividad")
+
+                        with col2:
+                            if st.session_state.is_monitor:
+                                if st.button("✏️ Editar", key=f"edit_{activity['id']}"):
+                                    st.session_state.edit_activity = True
+                                    st.session_state.activity_id = activity['id']
+                                    st.experimental_rerun()
+                                if st.button("❌ Eliminar", key=f"delete_{activity['id']}"):
+                                    delete_activity(activity['id'])
+                                    st.success("Actividad eliminada correctamente")
+                                    st.experimental_rerun()
+            else:
+                st.info("No hay actividades disponibles")
+
+    with tab2:
+        # Mostrar reservas del usuario
+        user_bookings = get_user_bookings(user_id)
+        if not user_bookings.empty:
+            st.subheader("Mis Reservas")
+            # Agrupar por actividad
+            for activity_name, activity_group in user_bookings.groupby('activity_name'):
+                with st.expander(f"🔸 {activity_name}"):
+                    for _, booking in activity_group.iterrows():
+                        col1, col2 = st.columns([3, 1])
+                        with col1:
+                            st.markdown(f"**Día:** {booking['day']}")
+                            st.markdown(f"**Hora:** {format_time(booking['start_time'])}")
+                            st.markdown(f"**Monitor:** {booking['monitor_name']}")
+                            st.markdown(f"**Fecha de reserva:** {booking['booking_date']}")
+                        with col2:
+                            if st.button("❌ Cancelar reserva", key=f"cancel_{booking['id']}"):
+                                cancel_booking(booking['id'])
+                                st.success("Reserva cancelada correctamente")
+                                st.experimental_rerun()
+        else:
+            st.info("No tienes reservas activas")
