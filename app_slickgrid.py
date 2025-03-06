@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import altair as alt
 
 # Datos de ejemplo
 data = [
@@ -12,11 +13,24 @@ data = [
 df = pd.DataFrame(data)
 
 # Título
-st.title("Ejemplo de Streamlit con Edición de Datos")
+st.title("📊 Streamlit: Edición de Datos + Gráfico")
 
-# Muestra la tabla editable usando st.data_editor
+# Muestra la tabla editable
+st.subheader("📝 Edita los datos:")
 edited_data = st.data_editor(df, num_rows="dynamic")
 
-# Mostrar datos actualizados después de la edición
-st.subheader("Datos actualizados")
+# Mostrar datos actualizados
+st.subheader("📌 Datos actualizados:")
 st.dataframe(edited_data)
+
+# Generar gráfico dinámico de edades
+st.subheader("📈 Distribución de Edades")
+
+if not edited_data.empty:
+    chart = alt.Chart(edited_data).mark_bar().encode(
+        x=alt.X("Nombre", sort=None),
+        y="Edad",
+        color="Ciudad"
+    ).properties(width=600, height=400)
+
+    st.altair_chart(chart, use_container_width=True)
