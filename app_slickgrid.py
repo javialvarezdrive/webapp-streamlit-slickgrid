@@ -3,7 +3,7 @@ from streamlit_slickgrid import st_slickgrid
 import pandas as pd
 import random
 
-st.title("Streamlit SlickGrid Demo (Sencillo)")
+st.title("Streamlit SlickGrid Demo (Sencillo) - Corregido") # Title updated to indicate it's the corrected version
 st.write("Esta es una aplicación Streamlit sencilla que muestra datos usando `streamlit-slickgrid`.")
 
 # 1. Generar datos inventados
