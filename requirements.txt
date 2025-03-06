@@ -2,3 +2,4 @@ streamlit
 streamlit-slickgrid
 supabase
 pandas
+python-dotenv
