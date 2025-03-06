@@ -1,54 +1,50 @@
 import streamlit as st
-from streamlit_slickgrid import st_slickgrid
-from supabase import create_client, Client
+import sqlite3
 import pandas as pd
-from config import SUPABASE_URL, SUPABASE_KEY
 
-def init_supabase() -> Client:
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+# Conectar a la base de datos
+def conectar_db():
+    return sqlite3.connect('gimnasio.db')
 
-def fetch_user_activities(supabase: Client) -> pd.DataFrame:
-    # Obtener datos de participantes
-    participants_response = supabase.from_('activity_participants').select(
-        'user_id, activity_id, attendance_status'
-    ).execute()
+# Función para agregar un nuevo usuario
+def agregar_usuario(nombre, email, monitor):
+    conn = conectar_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO Usuarios (nombre, email, monitor)
+        VALUES (?, ?, ?)
+    ''', (nombre, email, monitor))
+    conn.commit()
+    conn.close()
 
-    participants_data = participants_response.data
+# Función para agregar una nueva actividad
+def agregar_actividad(nombre, monitor_id, fecha, hora):
+    conn = conectar_db()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO Actividades (nombre, monitor_id, fecha, hora)
+        VALUES (?, ?, ?, ?)
+    ''', (nombre, monitor_id, fecha, hora))
+    conn.commit()
+    conn.close()
 
-    # Obtener datos de usuarios
-    users_response = supabase.from_('users').select('id, first_name, last_name1, last_name2').execute()
-    users_data = users_response.data
+# Función para obtener la lista de usuarios
+def obtener_usuarios():
+    conn = conectar_db()
+    df = pd.read_sql_query("SELECT * FROM Usuarios", conn)
+    conn.close()
+    return df
 
-    # Obtener datos de actividades
-    activities_response = supabase.from_('activities').select('id, name, date, start_time, end_time').execute()
-    activities_data = activities_response.data
+# Función para obtener la lista de actividades
+def obtener_actividades():
+    conn = conectar_db()
+    df = pd.read_sql_query("SELECT * FROM Actividades", conn)
+    conn.close()
+    return df
 
-    # Convertir a DataFrames
-    participants_df = pd.DataFrame(participants_data)
-    users_df = pd.DataFrame(users_data)
-    activities_df = pd.DataFrame(activities_data)
+# Interfaz de la aplicación
+st.title("Gestión de Gimnasio")
 
-    # Unir los DataFrames
-    merged_df = participants_df.merge(users_df, left_on='user_id', right_on='id', suffixes=('', '_user'))
-    merged_df = merged_df.merge(activities_df, left_on='activity_id', right_on='id', suffixes=('', '_activity'))
-
-    # Seleccionar y renombrar columnas
-    final_df = merged_df[['first_name', 'last_name1', 'last_name2', 'name', 'date', 'start_time', 'end_time', 'attendance_status']]
-    final_df.columns = ['Nombre', 'Apellido1', 'Apellido2', 'Actividad', 'Fecha', 'Inicio', 'Fin', 'Estado Asistencia']
-
-    return final_df
-
-def main():
-    st.title("Actividades por Usuario")
-
-    # Inicializa el cliente de Supabase
-    supabase = init_supabase()
-
-    # Obtén las actividades por usuario
-    df = fetch_user_activities(supabase)
-
-    # Muestra los datos usando SlickGrid
-    st_slickgrid(df)
-
-if __name__ == "__main__":
-    main()
+# Menú lateral
+menu = st.sidebar.selectbox("Menú", ["Usuarios", "[<img alt="GitHub Workflow" src="https://img.shields.io/github/actions/workflow/status/propensive/sirkle/main.yml?style=for-the-badge" height="24">](https://github.com/propensive/sirkle/actions)
+[<img src="https://img.shields.io/d
