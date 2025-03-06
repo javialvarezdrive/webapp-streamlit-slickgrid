@@ -46,5 +46,5 @@ def obtener_actividades():
 st.title("Gestión de Gimnasio")
 
 # Menú lateral
-menu = st.sidebar.selectbox("Menú", ["Usuarios", "[<img alt="GitHub Workflow" src="https://img.shields.io/github/actions/workflow/status/propensive/sirkle/main.yml?style=for-the-badge" height="24">](https://github.com/propensive/sirkle/actions)
-[<img src="https://img.shields.io/d
+menu = st.sidebar.selectbox("Menú", ['Usuarios', '[<img alt="GitHub Workflow" src="https://img.shields.io/github/actions/workflow/status/propensive/sirkle/main.yml?style=for-the-badge" height="24">](https://github.com/propensive/sirkle/actions)'])
+
