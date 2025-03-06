@@ -1,3 +1,27 @@
-.env
+# Archivos del entorno virtual
+venv/
+env/
+.venv/
+
+# Archivos de caché
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Base de datos
+*.db
+
+# Archivos de configuración local
+.env
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Archivos del IDE
+.idea/
+.vscode/
+*.swp
