@@ -1,5 +1,5 @@
-streamlit
-streamlit-slickgrid
-supabase
-pandas
-python-dotenv
+streamlit==1.24.0
+pandas==2.0.3
+numpy==1.24.3
+plotly==5.15.0
+bcrypt==4.0.1
