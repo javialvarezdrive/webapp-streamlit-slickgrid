@@ -9,7 +9,7 @@ DB_FILE = "database.db"
 def get_connection():
     return sqlite3.connect(DB_FILE)
 
-# Función para crear la tabla si no existe
+# Función para crear la tabla si no existe Y AÑADIR DATOS INICIALES
 def create_table():
     conn = get_connection()
     cursor = conn.cursor()
@@ -21,7 +21,25 @@ def create_table():
             Ciudad TEXT
         )
     ''')
-    conn.commit()
+
+    # --- AÑADIR DATOS INICIALES AQUÍ ---
+    # Comprobar si la tabla ya tiene datos (para no duplicar al reiniciar la app)
+    cursor.execute("SELECT COUNT(*) FROM personas")
+    count = cursor.fetchone()[0]
+    if count == 0: # Si la tabla está vacía, insertar datos iniciales
+        print("Insertando datos iniciales en la base de datos...") # Mensaje en la consola
+        initial_data = [
+            ('Ana', 30, 'Madrid'),
+            ('Juan', 25, 'Barcelona'),
+            ('Sofía', 35, 'Valencia'),
+            ('Carlos', 28, 'Sevilla')
+        ]
+        cursor.executemany("INSERT INTO personas (Nombre, Edad, Ciudad) VALUES (?, ?, ?)", initial_data)
+        conn.commit()
+        print("Datos iniciales insertados.")
+    else:
+        print("La tabla 'personas' ya contiene datos, no se insertan datos iniciales.") # Mensaje si ya hay datos
+
     conn.close()
 
 # Función para cargar datos desde la BD
@@ -45,11 +63,12 @@ def insert_data(nombre, edad, ciudad):
     conn.commit()
     conn.close()
 
-# Crear la tabla si no existe
+# Crear la tabla y añadir datos iniciales (si es necesario)
 create_table()
 
 # 📌 **Sección de la App**
-st.title("📊 Streamlit + SQLite")
+st.title("📊 Streamlit + SQLite con Datos Iniciales") # Título actualizado
+st.info("Cargando datos iniciales a la base de datos (solo la primera vez)...") # Mensaje informativo en la app
 
 # 📥 **Formulario para agregar nuevos datos**
 st.subheader("➕ Agregar nueva persona")
