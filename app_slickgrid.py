@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-from streamlit_slickgrid import st_slickgrid
 
 # Datos de ejemplo
 data = [
@@ -13,12 +12,11 @@ data = [
 df = pd.DataFrame(data)
 
 # Título
-st.title("Ejemplo de Streamlit con SlickGrid")
+st.title("Ejemplo de Streamlit con Edición de Datos")
 
-# Muestra la tabla interactiva
-edited_data = st_slickgrid(df, key="slickgrid")
+# Muestra la tabla editable usando st.data_editor
+edited_data = st.data_editor(df, num_rows="dynamic")
 
 # Mostrar datos actualizados después de la edición
-if edited_data is not None:
-    st.subheader("Datos actualizados")
-    st.dataframe(edited_data)
+st.subheader("Datos actualizados")
+st.dataframe(edited_data)
