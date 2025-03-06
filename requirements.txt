@@ -1,3 +1,4 @@
 streamlit
-streamlit-slickgrid
 pandas
+altair
+sqlite3
